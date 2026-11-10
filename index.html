@@ -1,0 +1,1584 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lasso</title>
+<meta name="description" content="Close rope into loops and everything inside vanishes. A daily puzzle and free play. Offline, no ads, no account, no tracking.">
+<meta name="theme-color" content="#1b1430">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lasso">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231b1430'/%3E%3Cellipse cx='18' cy='11' rx='10' ry='6.500' fill='none' stroke='%23efc27a' stroke-width='3.400'/%3E%3Cpath d='M11 16C5 20 15 22 10 26c-2 1.500-3 2-5 2' fill='none' stroke='%23efc27a' stroke-width='3.400' stroke-linecap='round'/%3E%3Ccircle cx='11' cy='16' r='3.200' fill='%23ff8a5c'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --night: #1b1430;
+    --dusk: #33204f;
+    --horizon: #6d2f5c;
+    --ink: #fbf1df;
+    --muted: #b7a8cf;
+    --rope: #efc27a;
+    --gold: #ffd766;
+    --coral: #ff8a5c;
+    --panel: #2a2046;
+    --panel-line: #463768;
+    --font: ui-rounded, "SF Pro Rounded", "Hiragino Maru Gothic ProN", "Arial Rounded MT Bold", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--night);
+    background-image: radial-gradient(120% 60% at 50% 112%, var(--horizon) 0%, var(--dusk) 42%, var(--night) 78%);
+    background-attachment: fixed;
+    color: var(--ink);
+    font-family: var(--font);
+    overscroll-behavior: none;
+    touch-action: manipulation;
+    -webkit-user-select: none; user-select: none;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  #app {
+    height: 100vh; height: 100dvh;
+    max-width: 660px; margin: 0 auto;
+    display: flex; flex-direction: column;
+    padding: calc(env(safe-area-inset-top, 0px) + 10px) calc(env(safe-area-inset-right, 0px) + 16px)
+             calc(env(safe-area-inset-bottom, 0px) + 10px) calc(env(safe-area-inset-left, 0px) + 16px);
+  }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .brand { display: flex; align-items: center; gap: 6px; font-size: 22px; font-weight: 800; letter-spacing: .01em; color: var(--rope); }
+  .brand svg { width: 26px; height: 26px; display: block; }
+  @media (max-width: 370px) { .brand span { display: none; } }
+  .tabs { display: flex; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 999px; padding: 3px; }
+  .tabs button { border: 0; background: none; padding: 7px 12px; border-radius: 999px; font-size: 14px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+  .tabs button[aria-selected="true"] { background: var(--rope); color: #2a1a10; }
+  .tools { display: flex; gap: 6px; }
+  .icon-btn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--panel-line); background: var(--panel); display: grid; place-items: center; font-weight: 800; font-size: 16px; padding: 0; }
+  .icon-btn svg { width: 18px; height: 18px; display: block; }
+  #hud { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 10px 2px 8px; }
+  #score { font-size: 38px; line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .score-label { display: flex; align-items: center; gap: 8px; min-height: 20px; font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; }
+  #score.bump { animation: bump .3s ease-out; transform-origin: left center; }
+  @keyframes bump { 40% { transform: scale(1.16); color: var(--gold); } }
+  #chain { background: var(--coral); color: #2a1a10; border-radius: 999px; padding: 2px 9px; font-size: 13px; font-weight: 800; letter-spacing: 0; text-transform: none; white-space: nowrap; }
+  #chain[hidden] { display: none; }
+  #chain.pop { animation: pop .34s ease-out; }
+  @keyframes pop { from { transform: scale(1.35); } }
+  #toast { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 2; max-width: 92%; padding: 8px 16px; border-radius: 14px; background: var(--gold); color: #2a1a10; font-size: 16px; font-weight: 800; line-height: 1.3; text-align: center; white-space: pre-line; pointer-events: none; opacity: 0; transition: opacity .25s; box-shadow: 0 6px 18px rgba(8,4,22,.45); }
+  #toast.show { opacity: 1; animation: toastin .34s ease-out; }
+  @keyframes toastin { from { transform: translate(-50%, -10px) scale(.86); } }
+  .hud-right { text-align: right; font-size: 13px; color: var(--muted); font-weight: 600; line-height: 1.45; }
+  .hud-right b { color: var(--ink); font-weight: 800; }
+  #btn-new { margin-top: 4px; border: 1px solid var(--panel-line); background: var(--panel); border-radius: 999px; padding: 4px 11px; font-size: 13px; font-weight: 700; }
+  #stage { flex: 1; min-height: 0; position: relative; }
+  #cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+  #overlay { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(14, 9, 28, .72); z-index: 10; }
+  #overlay[hidden] { display: none; }
+  .card { width: 100%; max-width: 380px; max-height: 92vh; overflow: auto; background: var(--panel); border: 1px solid var(--panel-line); border-radius: 20px; padding: 20px; animation: rise .22s ease-out; }
+  @keyframes rise { from { transform: translateY(14px) scale(.97); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .card, #score.bump, #chain.pop, #toast.show, .gap-bar i { animation: none; } }
+  .card h2 { margin: 0 0 6px; font-size: 26px; color: var(--rope); }
+  .card p { margin: 8px 0; font-size: 15px; line-height: 1.45; }
+  .card ol { margin: 8px 0 12px; padding-left: 20px; font-size: 15px; line-height: 1.45; }
+  .card ol li { margin: 6px 0; }
+  .big-score { font-size: 48px; font-weight: 800; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .note { color: var(--gold); font-weight: 800; }
+  .sub { color: var(--muted); font-size: 14px; }
+  .gap-bar { height: 8px; margin: 12px 0 4px; border-radius: 999px; background: var(--night); overflow: hidden; }
+  .gap-bar i { display: block; height: 100%; border-radius: 999px; background: var(--rope); transform-origin: left; animation: grow .5s ease-out; }
+  @keyframes grow { from { transform: scaleX(0); } }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; }
+  .badges li { background: var(--night); color: var(--gold); border-radius: 999px; padding: 4px 11px; font-size: 13px; font-weight: 800; }
+  .share { white-space: pre-wrap; background: var(--night); border-radius: 12px; padding: 10px 12px; font-size: 14px; line-height: 1.5; margin: 12px 0; font-family: var(--font); -webkit-user-select: text; user-select: text; }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .btn { flex: 1 1 auto; border: 0; border-radius: 12px; padding: 12px 14px; font-weight: 800; font-size: 15px; background: var(--rope); color: #2a1a10; }
+  .btn.alt { background: none; border: 1px solid var(--panel-line); color: var(--ink); }
+  .help-art { display: block; width: 120px; height: 120px; margin: 4px auto 6px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><ellipse cx="18" cy="10.5" rx="11.5" ry="7.5" fill="none" stroke="#efc27a" stroke-width="3.4"/><path d="M10 16C4 20 14 23 9 27c-2 1.500-4 2-6 2" fill="none" stroke="#efc27a" stroke-width="3.4" stroke-linecap="round"/><circle cx="10" cy="16" r="3.300" fill="#ff8a5c"/></svg>
+      <span>Lasso</span>
+    </div>
+    <div class="tabs" role="tablist">
+      <button id="tab-daily" role="tab" aria-selected="true">Today</button>
+      <button id="tab-free" role="tab" aria-selected="false">Free play</button>
+    </div>
+    <div class="tools">
+      <button class="icon-btn" id="btn-sound" aria-label="Mute sound"></button>
+      <button class="icon-btn" id="btn-help" aria-label="How to play">?</button>
+    </div>
+  </header>
+  <section id="hud">
+    <div>
+      <div id="score" aria-live="polite">0</div>
+      <div class="score-label">Score <span id="chain" hidden></span></div>
+    </div>
+    <div class="hud-right">
+      <div id="hud-a"></div>
+      <div id="hud-b"></div>
+      <button id="btn-new" hidden>New run</button>
+    </div>
+  </section>
+  <main id="stage"><canvas id="cv" aria-label="Lasso game board. Drag a rope tile from the tray onto the board, or use keys 1 to 3, the arrow keys and Enter."></canvas><div id="toast" role="status"></div></main>
+</div>
+<div id="overlay" hidden><div class="card" id="card" role="dialog" aria-modal="true"></div></div>
+
+<script>
+/* ===== ENGINE:BEGIN — pure game logic. No DOM, no clock, no Math.random. docs/rules.md is the spec. ===== */
+const LassoEngine = (function () {
+  'use strict';
+
+  const SIZE = 9;
+  const CELLS = SIZE * SIZE;
+  const N = 1, E = 2, S = 4, W = 8;
+  const JUNK = 16;
+  const DIRS = [
+    { bit: N, dr: -1, dc: 0, opp: S },
+    { bit: E, dr: 0, dc: 1, opp: W },
+    { bit: S, dr: 1, dc: 0, opp: N },
+    { bit: W, dr: 0, dc: -1, opp: E },
+  ];
+
+  const SHAPES = {
+    H: E | W, V: N | S,
+    NE: N | E, ES: E | S, SW: S | W, WN: W | N,
+    NES: N | E | S, ESW: E | S | W, SWN: S | W | N, WNE: W | N | E,
+  };
+
+  const DEFAULT_RULES = {
+    bag: { H: 2, V: 2, NE: 3, ES: 3, SW: 3, WN: 3, NES: 2, ESW: 2, SWN: 2, WNE: 2 },
+    startJunk: 6,
+    junkEvery: 2,
+    chainCap: 5,
+  };
+
+  function hashSeed(text) {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < text.length; i++) {
+      h ^= text.charCodeAt(i) & 0xff;
+      h = Math.imul(h, 0x01000193);
+    }
+    return h >>> 0;
+  }
+
+  function seedForDate(dateText) { return hashSeed('lasso-' + dateText); }
+
+  function nextRandom(stream) {
+    stream.s = (stream.s + 0x6d2b79f5) | 0;
+    let t = Math.imul(stream.s ^ (stream.s >>> 15), 1 | stream.s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return (t ^ (t >>> 14)) >>> 0;
+  }
+
+  function neighbor(cell, d) {
+    const r = Math.floor(cell / SIZE) + d.dr;
+    const c = (cell % SIZE) + d.dc;
+    if (r < 0 || r >= SIZE || c < 0 || c >= SIZE) return -1;
+    return r * SIZE + c;
+  }
+
+  function isTile(v) { return v > 0 && v < JUNK; }
+
+  function canPlace(game, shape, cell) {
+    const board = game.board;
+    if (board[cell] !== 0) return false;
+    for (const d of DIRS) {
+      const n = neighbor(cell, d);
+      if (n < 0) continue;
+      const v = board[n];
+      if (!isTile(v)) continue;
+      if (((shape & d.bit) !== 0) !== ((v & d.opp) !== 0)) return false;
+    }
+    return true;
+  }
+
+  function legalCells(game, shape) {
+    const out = [];
+    for (let i = 0; i < CELLS; i++) if (canPlace(game, shape, i)) out.push(i);
+    return out;
+  }
+
+  function linkedNeighbors(board, cell, skip) {
+    const v = board[cell];
+    const out = [];
+    for (const d of DIRS) {
+      if (!(v & d.bit)) continue;
+      const n = neighbor(cell, d);
+      if (n < 0 || n === skip) continue;
+      if (isTile(board[n]) && (board[n] & d.opp)) out.push(n);
+    }
+    return out;
+  }
+
+  // The rope graph is a forest before every placement, because each cycle is
+  // removed the moment it forms. So every new cycle passes through the placed cell.
+  function findLoop(board, cell) {
+    const starts = linkedNeighbors(board, cell, -1);
+    if (starts.length < 2) return [];
+    const inLoop = new Array(CELLS).fill(false);
+    let found = false;
+    for (let a = 0; a < starts.length; a++) {
+      const parent = new Array(CELLS).fill(-2);
+      parent[starts[a]] = -1;
+      const queue = [starts[a]];
+      for (let q = 0; q < queue.length; q++) {
+        for (const n of linkedNeighbors(board, queue[q], cell)) {
+          if (parent[n] === -2) { parent[n] = queue[q]; queue.push(n); }
+        }
+      }
+      for (let b = a + 1; b < starts.length; b++) {
+        if (parent[starts[b]] === -2) continue;
+        found = true;
+        for (let at = starts[b]; at !== -1; at = parent[at]) inLoop[at] = true;
+      }
+    }
+    if (!found) return [];
+    inLoop[cell] = true;
+    const out = [];
+    for (let i = 0; i < CELLS; i++) if (inLoop[i]) out.push(i);
+    return out;
+  }
+
+  // Enclosed = not reachable from the board rim by 8-way steps through non-loop cells.
+  // 8-way matters: a pocket touching the outside only at a corner is still outside.
+  function findEnclosed(loop) {
+    const blocked = new Array(CELLS).fill(false);
+    for (const c of loop) blocked[c] = true;
+    const seen = new Array(CELLS).fill(false);
+    const stack = [];
+    for (let i = 0; i < CELLS; i++) {
+      const r = Math.floor(i / SIZE), c = i % SIZE;
+      if ((r === 0 || c === 0 || r === SIZE - 1 || c === SIZE - 1) && !blocked[i]) {
+        seen[i] = true; stack.push(i);
+      }
+    }
+    while (stack.length) {
+      const at = stack.pop();
+      const r = Math.floor(at / SIZE), c = at % SIZE;
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        const nr = r + dr, nc = c + dc;
+        if (nr < 0 || nr >= SIZE || nc < 0 || nc >= SIZE) continue;
+        const n = nr * SIZE + nc;
+        if (!seen[n] && !blocked[n]) { seen[n] = true; stack.push(n); }
+      }
+    }
+    const out = [];
+    for (let i = 0; i < CELLS; i++) if (!seen[i] && !blocked[i]) out.push(i);
+    return out;
+  }
+
+  function scoreLoop(loopCount, enclosedCount, junkCount) {
+    const area = loopCount + enclosedCount;
+    return 5 * area * area + 20 * junkCount;
+  }
+
+  // A chain counts consecutive hands with at least one loop. Returns what a loop
+  // closed right now would be multiplied by.
+  function chainMultiplier(game) {
+    return Math.min(game.handLooped ? game.chain : game.chain + 1, game.rules.chainCap);
+  }
+
+  // What would happen if shape went on cell. Leaves the game unchanged.
+  function preview(game, shape, cell) {
+    const board = game.board;
+    board[cell] = shape;
+    const loop = findLoop(board, cell);
+    const enclosed = loop.length ? findEnclosed(loop) : [];
+    let junk = 0;
+    for (const c of enclosed) if (board[c] === JUNK) junk++;
+    board[cell] = 0;
+    const multiplier = chainMultiplier(game);
+    return { loop, enclosed, junk, multiplier, points: loop.length ? scoreLoop(loop.length, enclosed.length, junk) * multiplier : 0 };
+  }
+
+  function refillBag(game) {
+    const bag = [];
+    for (const name of Object.keys(SHAPES)) {
+      const count = game.rules.bag[name] || 0;
+      for (let i = 0; i < count; i++) bag.push(SHAPES[name]);
+    }
+    for (let i = bag.length - 1; i > 0; i--) {
+      const j = nextRandom(game.tileStream) % (i + 1);
+      const t = bag[i]; bag[i] = bag[j]; bag[j] = t;
+    }
+    game.bag = bag;
+  }
+
+  function drawTile(game) {
+    if (game.bag.length === 0) refillBag(game);
+    return game.bag.shift();
+  }
+
+  function dropJunk(game) {
+    const cell = nextRandom(game.junkStream) % CELLS;
+    if (game.board[cell] !== 0) return -1;
+    game.board[cell] = JUNK;
+    return cell;
+  }
+
+  function hasMove(game) {
+    for (const shape of game.hand) {
+      if (shape === 0) continue;
+      for (let i = 0; i < CELLS; i++) if (canPlace(game, shape, i)) return true;
+    }
+    return false;
+  }
+
+  function dealHand(game) {
+    game.hand = [drawTile(game), drawTile(game), drawTile(game)];
+    game.hands += 1;
+  }
+
+  function newGame(seed, rules) {
+    const game = {
+      seed: seed >>> 0,
+      rules: rules || DEFAULT_RULES,
+      board: new Array(CELLS).fill(0),
+      hand: [0, 0, 0],
+      bag: [],
+      tileStream: { s: seed | 0 },
+      junkStream: { s: (seed ^ 0x9e3779b9) | 0 },
+      hands: 0,
+      placed: 0,
+      score: 0,
+      chain: 0,
+      handLooped: false,
+      loops: [],
+      over: false,
+    };
+    let dropped = 0;
+    while (dropped < game.rules.startJunk) if (dropJunk(game) >= 0) dropped++;
+    dealHand(game);
+    game.over = !hasMove(game);
+    return game;
+  }
+
+  function place(game, handIndex, cell) {
+    const shape = game.hand[handIndex];
+    if (game.over || !shape || !canPlace(game, shape, cell)) return null;
+    const result = preview(game, shape, cell);
+    game.board[cell] = shape;
+    game.hand[handIndex] = 0;
+    game.placed += 1;
+    if (result.loop.length) {
+      for (const c of result.loop) game.board[c] = 0;
+      for (const c of result.enclosed) game.board[c] = 0;
+      game.score += result.points;
+      if (!game.handLooped) { game.chain += 1; game.handLooped = true; }
+      game.loops.push({ atTile: game.placed, cells: result.loop.length, enclosed: result.enclosed.length, junk: result.junk, points: result.points, chain: game.chain, multiplier: result.multiplier });
+    }
+    const event = {
+      shape, cell,
+      loop: result.loop, enclosed: result.enclosed, junk: result.junk, points: result.points,
+      multiplier: result.loop.length ? result.multiplier : 0, chain: game.chain,
+      newHand: false, junkDropped: -1, over: false,
+    };
+    if (game.hand.every((h) => h === 0)) {
+      if (!game.handLooped) game.chain = 0;
+      game.handLooped = false;
+      if (game.rules.junkEvery > 0 && game.hands % game.rules.junkEvery === 0) event.junkDropped = dropJunk(game);
+      dealHand(game);
+      event.newHand = true;
+    }
+    game.over = !hasMove(game);
+    event.over = game.over;
+    return event;
+  }
+
+  function biggestArea(game) {
+    let best = 0;
+    for (const l of game.loops) best = Math.max(best, l.cells + l.enclosed);
+    return best;
+  }
+
+  function longestChain(game) {
+    let best = 0;
+    for (const l of game.loops) best = Math.max(best, l.chain || 0);
+    return best;
+  }
+
+  function formatNumber(n) { return String(n).replace(/\B(?=(\d{3})+$)/g, ','); }
+
+  // Tells how a run went without giving away where anything was.
+  function shareText(game, dateText) {
+    const lines = ['Lasso ' + dateText];
+    const count = game.loops.length;
+    lines.push(formatNumber(game.score) + ' points, ' + count + (count === 1 ? ' loop' : ' loops') + ', biggest ' + biggestArea(game) + (longestChain(game) >= 2 ? ', chain ' + longestChain(game) : ''));
+    if (count) {
+      const shown = game.loops.slice(0, 20).map((l) => {
+        const area = l.cells + l.enclosed;
+        return area >= 16 ? '🔴' : area >= 7 ? '🟠' : '🟡';
+      }).join('');
+      lines.push(shown + (count > 20 ? ' +' + (count - 20) : ''));
+    }
+    return lines.join('\n');
+  }
+
+  function serialize(game) {
+    const copy = Object.assign({}, game);
+    delete copy.rules;
+    return copy;
+  }
+
+  function restore(data) {
+    if (!data || !Array.isArray(data.board) || data.board.length !== CELLS || !Array.isArray(data.hand)) return null;
+    return Object.assign({ chain: 0, handLooped: false }, data, { rules: DEFAULT_RULES });
+  }
+
+  return { SIZE, CELLS, N, E, S, W, JUNK, DIRS, SHAPES, DEFAULT_RULES,
+    hashSeed, seedForDate, canPlace, legalCells, preview, newGame, place, neighbor, isTile,
+    biggestArea, longestChain, chainMultiplier, formatNumber, shareText, serialize, restore };
+})();
+/* ===== ENGINE:END ===== */
+</script>
+
+<script>
+/* ===== UI — drawing, input, sound, saving. Everything game-related goes through LassoEngine. ===== */
+(function () {
+  'use strict';
+  const L = LassoEngine;
+  const $ = (id) => document.getElementById(id);
+  const cv = $('cv'), ctx = cv.getContext('2d'), stage = $('stage');
+  const reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const FONT = getComputedStyle(document.body).fontFamily;
+
+  /* ----- saving: localStorage when allowed, memory otherwise ----- */
+  const memory = {};
+  function load(key, fallback) {
+    try {
+      const raw = localStorage.getItem('lasso.v1.' + key);
+      if (raw !== null) return JSON.parse(raw);
+    } catch (e) { /* blocked storage or bad data */ }
+    return key in memory ? memory[key] : fallback;
+  }
+  function save(key, value) {
+    memory[key] = value;
+    try { localStorage.setItem('lasso.v1.' + key, JSON.stringify(value)); } catch (e) { /* memory only */ }
+  }
+
+  function localDate() {
+    const d = new Date();
+    const two = (n) => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate());
+  }
+
+  /* ----- game state ----- */
+  const app = {
+    mode: load('mode', 'daily') === 'free' ? 'free' : 'daily',
+    games: { daily: null, free: null },
+    dailyDate: '',
+    best: load('best', 0),
+    records: Object.assign({ dailyBest: 0, biggest: 0, chain: 0 }, load('records', null)),
+    marks: load('marks', null) || {},
+    muted: !!load('muted', false),
+    shownScore: 0,
+    shownChain: 1,
+  };
+  const game = () => app.games[app.mode];
+
+  function freshSeed() {
+    if (window.crypto && crypto.getRandomValues) return crypto.getRandomValues(new Uint32Array(1))[0];
+    return Math.floor(Math.random() * 4294967296);
+  }
+
+  /* ----- personal records: what this run has to beat, fixed when the run starts ----- */
+  function startMarks(mode) {
+    const r = app.records;
+    app.marks[mode] = { best: mode === 'free' ? app.best : r.dailyBest, biggest: r.biggest, chain: r.chain, done: {} };
+    save('marks', app.marks);
+  }
+  function marks(mode) {
+    if (!app.marks[mode]) startMarks(mode);
+    return app.marks[mode];
+  }
+
+  // Updates saved records after a loop and returns anything worth announcing. Each kind speaks once per run.
+  function noteRecords(g, ev) {
+    const m = marks(app.mode), r = app.records, out = [];
+    const area = ev.loop.length + ev.enclosed.length;
+    const once = (kind) => (m.done[kind] ? false : (m.done[kind] = true));
+    if (m.best > 0 && g.score > m.best && once('best')) out.push('New best score!');
+    if (r.biggest === 0) out.push('Your first lasso!');
+    else if (m.biggest > 0 && area > m.biggest && once('big')) out.push('Biggest loop yet: ' + area);
+    if (ev.chain >= 2 && ev.chain > m.chain && once('chain')) out.push(r.chain < 2 ? 'First chain!' : 'Longest chain yet: ' + ev.chain);
+    if (app.mode === 'free') {
+      if (g.score > app.best) { app.best = g.score; save('best', app.best); }
+    } else if (g.score > r.dailyBest) r.dailyBest = g.score;
+    r.biggest = Math.max(r.biggest, area);
+    r.chain = Math.max(r.chain, ev.chain);
+    save('records', r);
+    save('marks', app.marks);
+    return out;
+  }
+
+  function persist() {
+    if (app.games.daily) save('daily', { date: app.dailyDate, game: L.serialize(app.games.daily) });
+    if (app.games.free) save('free', L.serialize(app.games.free));
+  }
+
+  function restoreGames() {
+    const d = load('daily', null);
+    if (d && d.game) {
+      const g = L.restore(d.game);
+      if (g) { app.games.daily = g; app.dailyDate = d.date; }
+    }
+    const f = L.restore(load('free', null));
+    if (f && !f.over) app.games.free = f;
+    else { app.games.free = L.newGame(freshSeed()); startMarks('free'); }
+  }
+
+  // A run already in progress keeps its own date until it ends.
+  function ensureDaily() {
+    const today = localDate();
+    const g = app.games.daily;
+    if (g && app.dailyDate === today) return false;
+    if (g && !g.over && g.placed > 0) return false;
+    app.dailyDate = today;
+    app.games.daily = L.newGame(L.seedForDate(today));
+    startMarks('daily');
+    persist();
+    return true;
+  }
+
+  /* ----- sound: synthesized, starts on the first touch ----- */
+  const Sound = (function () {
+    let ac = null, master = null;
+    function unlock() {
+      if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        ac = new AC();
+        master = ac.createGain();
+        master.gain.value = app.muted ? 0 : 0.5;
+        master.connect(ac.destination);
+      } catch (e) { ac = null; }
+    }
+    function setMuted(m) { if (master) master.gain.value = m ? 0 : 0.5; }
+    function tone(freq, at, dur, type, vol) {
+      if (!ac) return;
+      const t = ac.currentTime + at;
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = type || 'triangle';
+      o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(master);
+      o.start(t); o.stop(t + dur + 0.02);
+    }
+    function noise(at, dur, vol, cutoff) {
+      if (!ac) return;
+      const t = ac.currentTime + at;
+      const size = Math.floor(ac.sampleRate * dur);
+      const buf = ac.createBuffer(1, size, ac.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < size; i++) data[i] = Math.random() * 2 - 1;
+      const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+      s.buffer = buf; f.type = 'lowpass'; f.frequency.value = cutoff;
+      g.gain.setValueAtTime(vol, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      s.connect(f); f.connect(g); g.connect(master);
+      s.start(t);
+    }
+    const PENTA = [0, 2, 4, 7, 9];
+    function note(step) {
+      const oct = Math.floor(step / 5);
+      return 277.18 * Math.pow(2, oct + PENTA[step % 5] / 12);
+    }
+    return {
+      unlock, setMuted,
+      place() { tone(190, 0, 0.1, 'sine', 0.4); noise(0, 0.05, 0.12, 1800); },
+      nope() { tone(120, 0, 0.13, 'square', 0.07); },
+      deal() { tone(note(7), 0, 0.09, 'triangle', 0.08); tone(note(9), 0.06, 0.09, 'triangle', 0.08); },
+      thud() { tone(90, 0, 0.12, 'sine', 0.25); },
+      // Pitch climbs with the length of rope just joined, so a growing loop sounds like one.
+      link(run) { tone(note(5 + Math.min(run, 12)), 0.03, 0.13, 'triangle', 0.11); },
+      fanfare() { [10, 12, 14, 15].forEach((n, i) => tone(note(n), i * 0.09, i === 3 ? 0.55 : 0.2, 'triangle', 0.16)); },
+      lasso(cells, area, burstAt, multiplier) {
+        const lift = (multiplier - 1) * 2;
+        const count = Math.min(cells, 14);
+        const gap = Math.min(0.04, burstAt * 0.75 / count);
+        for (let i = 0; i < count; i++) tone(note(i + lift + Math.min(5, Math.floor(area / 8))), i * gap, 0.16, 'triangle', 0.13);
+        const root = note(7 + lift + Math.min(8, Math.floor(area / 5)));
+        [1, 1.5, 2].forEach((m, i) => tone(root * m, burstAt + i * 0.03, 0.5 + Math.min(0.5, area / 60), 'triangle', 0.17));
+        tone(82, burstAt, 0.32, 'sine', 0.45);
+        noise(burstAt, 0.3, 0.16, 3200);
+      },
+      over() { tone(note(5), 0, 0.3, 'triangle', 0.14); tone(note(3), 0.2, 0.32, 'triangle', 0.14); tone(note(0), 0.42, 0.65, 'triangle', 0.14); },
+    };
+  })();
+
+  /* ----- drawing ----- */
+  const ROPE = { rope: '#efc27a', light: '#ffe6b8', dark: '#8a5a2c', shadow: 'rgba(8,4,22,.42)' };
+  const GOLD = { rope: '#ffd766', light: '#fff6cc', dark: '#b4770f', shadow: 'rgba(8,4,22,.42)' };
+  const RED = { rope: '#e8857b', light: '#ffc2ba', dark: '#7a2f2b', shadow: 'rgba(8,4,22,.42)' };
+  const PT = { 1: [0, -0.51], 2: [0.51, 0], 4: [0, 0.51], 8: [-0.51, 0] };
+  const ALL_BITS = [1, 2, 4, 8];
+
+  const hex = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  function mixColor(a, b, t) {
+    const x = hex(a), y = hex(b);
+    return 'rgb(' + [0, 1, 2].map((i) => Math.round(x[i] + (y[i] - x[i]) * t)).join(',') + ')';
+  }
+  function mixPalette(a, b, t) {
+    if (t <= 0) return a;
+    if (t >= 1) return b;
+    return { rope: mixColor(a.rope, b.rope, t), light: mixColor(a.light, b.light, t), dark: mixColor(a.dark, b.dark, t), shadow: a.shadow };
+  }
+  const clamp01 = (v) => Math.max(0, Math.min(1, v));
+  const easeOutBack = (t) => { const c = 1.70158; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };
+
+  function roundRect(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+
+  function ropePath(c, shape, s) {
+    c.beginPath();
+    const bits = ALL_BITS.filter((b) => shape & b);
+    if (bits.length === 2) {
+      const a = PT[bits[0]], b = PT[bits[1]];
+      c.moveTo(a[0] * s, a[1] * s);
+      if (a[0] === -b[0] && a[1] === -b[1]) c.lineTo(b[0] * s, b[1] * s);
+      else c.quadraticCurveTo(0, 0, b[0] * s, b[1] * s);
+    } else {
+      for (const b of bits) { c.moveTo(0, 0); c.lineTo(PT[b][0] * s, PT[b][1] * s); }
+    }
+  }
+
+  // Points along each strand of a tile, with direction, for drawing the slanted twist marks.
+  function ropeSamples(shape, s, spacing) {
+    const bits = ALL_BITS.filter((b) => shape & b);
+    const out = [];
+    const line = (ax, ay, bx, by) => {
+      const len = Math.hypot(bx - ax, by - ay);
+      const count = Math.max(1, Math.round(len / spacing));
+      const tx = (bx - ax) / len, ty = (by - ay) / len;
+      for (let i = 0; i < count; i++) {
+        const t = (i + 0.5) / count;
+        out.push([ax + (bx - ax) * t, ay + (by - ay) * t, tx, ty]);
+      }
+    };
+    if (bits.length === 2) {
+      const a = PT[bits[0]], b = PT[bits[1]];
+      if (a[0] === -b[0] && a[1] === -b[1]) {
+        line(a[0] * s, a[1] * s, b[0] * s, b[1] * s);
+      } else {
+        const count = Math.max(2, Math.round((s * 0.8) / spacing));
+        for (let i = 0; i < count; i++) {
+          const t = (i + 0.5) / count, u = 1 - t;
+          const x = (u * u * a[0] + t * t * b[0]) * s, y = (u * u * a[1] + t * t * b[1]) * s;
+          let tx = (-2 * u * a[0] + 2 * t * b[0]), ty = (-2 * u * a[1] + 2 * t * b[1]);
+          const m = Math.hypot(tx, ty); tx /= m; ty /= m;
+          out.push([x, y, tx, ty]);
+        }
+      }
+    } else {
+      for (const b of bits) line(PT[b][0] * s, PT[b][1] * s, 0, 0);
+    }
+    return out;
+  }
+
+  function drawRope(c, shape, s, pal) {
+    const w = s * 0.3;
+    const base = c.globalAlpha;
+    c.save();
+    c.lineCap = 'butt'; c.lineJoin = 'round';
+    c.save(); c.translate(0, s * 0.035); ropePath(c, shape, s); c.strokeStyle = pal.shadow; c.lineWidth = w * 1.08; c.stroke(); c.restore();
+    ropePath(c, shape, s);
+    c.strokeStyle = pal.dark; c.lineWidth = w; c.stroke();
+    c.strokeStyle = pal.rope; c.lineWidth = w * 0.82; c.stroke();
+    c.globalAlpha = base * 0.55; c.strokeStyle = pal.light; c.lineWidth = w * 0.22; c.stroke();
+    c.globalAlpha = base * 0.62;
+    c.strokeStyle = pal.dark; c.lineWidth = w * 0.13; c.lineCap = 'round';
+    c.beginPath();
+    for (const [x, y, tx, ty] of ropeSamples(shape, s, w * 0.62)) {
+      const nx = -ty, ny = tx, along = w * 0.2, across = w * 0.36;
+      c.moveTo(x - tx * along + nx * across, y - ty * along + ny * across);
+      c.lineTo(x + tx * along - nx * across, y + ty * along - ny * across);
+    }
+    c.stroke();
+    c.lineCap = 'butt';
+    c.globalAlpha = base;
+    if (ALL_BITS.filter((b) => shape & b).length > 2) {
+      c.beginPath(); c.arc(0, 0, w * 0.72, 0, 7); c.fillStyle = pal.dark; c.fill();
+      c.beginPath(); c.arc(0, 0, w * 0.55, 0, 7); c.fillStyle = pal.rope; c.fill();
+      c.beginPath(); c.arc(-w * 0.14, -w * 0.14, w * 0.16, 0, 7); c.fillStyle = pal.light; c.fill();
+    }
+    c.restore();
+  }
+
+  // A live rope end is bright. An end facing a wall or a burr can never join, so it is dull.
+  function drawEnds(c, g, cell, shape, s) {
+    for (const d of L.DIRS) {
+      if (!(shape & d.bit)) continue;
+      const n = L.neighbor(cell, d);
+      const v = n < 0 ? L.JUNK : g.board[n];
+      if (L.isTile(v) && (v & d.opp)) continue;
+      const live = v === 0;
+      c.beginPath();
+      c.arc(PT[d.bit][0] * s * 0.84, PT[d.bit][1] * s * 0.84, s * 0.085, 0, 7);
+      c.fillStyle = live ? '#ff8a5c' : '#6d6085';
+      c.fill();
+      c.lineWidth = s * 0.025; c.strokeStyle = '#2a1a22'; c.stroke();
+    }
+  }
+
+  function drawBurr(c, s, seed) {
+    const spikes = 11, r1 = s * 0.36, r2 = s * 0.2;
+    c.save();
+    c.rotate(seed * 2.399);
+    c.beginPath();
+    for (let i = 0; i < spikes * 2; i++) {
+      const r = i % 2 ? r2 : r1 - (seed * (i + 3)) % 3 * s * 0.02;
+      const a = (i / (spikes * 2)) * Math.PI * 2;
+      c.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    c.closePath();
+    c.fillStyle = '#7d6aa3'; c.fill();
+    c.lineWidth = s * 0.025; c.strokeStyle = '#231a3c'; c.stroke();
+    c.beginPath(); c.arc(0, 0, s * 0.13, 0, 7); c.fillStyle = '#5a4a80'; c.fill();
+    c.restore();
+  }
+
+  function backing(c, s, fill) {
+    const h = s / 2 - 1;
+    roundRect(c, -h, -h, h * 2, h * 2, s * 0.16);
+    c.fillStyle = fill; c.fill();
+  }
+
+  /* layout */
+  const M = { w: 0, h: 0, dpr: 1, side: 0, cell: 0, bx: 0, by: 0, trayY: 0, trayH: 0 };
+  const layer = document.createElement('canvas');
+  const lc = layer.getContext('2d');
+  const hidden = new Set();
+
+  function resize() {
+    const r = stage.getBoundingClientRect();
+    if (r.width < 10 || r.height < 10) return;
+    M.dpr = Math.min(window.devicePixelRatio || 1, 3);
+    M.w = r.width; M.h = r.height;
+    const trayRatio = 0.24, gap = 12;
+    M.sideways = r.width > r.height * 1.45;
+    if (M.sideways) {
+      // Wide and short, like a phone on its side: the tray stands beside the board.
+      M.side = Math.floor(Math.min(r.height, r.width * 0.72, 620) / 9) * 9;
+      M.cell = M.side / 9;
+      M.trayW = Math.min(M.side * 0.36, r.width - M.side - gap);
+      M.trayH = M.side;
+      M.bx = Math.round((r.width - M.side - gap - M.trayW) / 2);
+      M.by = Math.round((r.height - M.side) / 2);
+      M.trayX = M.bx + M.side + gap;
+      M.trayY = M.by;
+    } else {
+      M.side = Math.floor(Math.min(r.width, (r.height - gap) / (1 + trayRatio), 620) / 9) * 9;
+      M.cell = M.side / 9;
+      // On tall phones the spare height goes to the tray, so pieces are bigger and nearer the thumb.
+      const spare = Math.max(0, r.height - gap - M.side * (1 + trayRatio));
+      M.trayH = M.side * trayRatio + Math.min(spare * 0.5, M.side * 0.14);
+      M.trayW = M.side;
+      M.bx = Math.round((r.width - M.side) / 2);
+      M.by = Math.max(0, Math.round((r.height - M.side - gap - M.trayH) / 2));
+      M.trayX = M.bx;
+      M.trayY = M.by + M.side + gap;
+    }
+    cv.width = Math.round(r.width * M.dpr);
+    cv.height = Math.round(r.height * M.dpr);
+    layer.width = Math.round(M.side * M.dpr);
+    layer.height = Math.round(M.side * M.dpr);
+    paintLayer();
+    draw(performance.now()); // Setting a canvas size blanks it, so redraw before the next paint.
+  }
+
+  function paintLayer() {
+    const g = game();
+    if (!g || !M.side) return;
+    const c = lc, s = M.cell;
+    c.setTransform(M.dpr, 0, 0, M.dpr, 0, 0);
+    c.clearRect(0, 0, M.side, M.side);
+    roundRect(c, 0, 0, M.side, M.side, s * 0.28);
+    c.fillStyle = '#231a3e'; c.fill();
+    for (let i = 0; i < L.CELLS; i++) {
+      const x = (i % 9) * s + s / 2, y = Math.floor(i / 9) * s + s / 2;
+      c.save(); c.translate(x, y);
+      c.save(); c.scale(0.94, 0.94); backing(c, s, '#2f2452'); c.restore();
+      const v = g.board[i];
+      if (v && !hidden.has(i)) {
+        if (v === L.JUNK) drawBurr(c, s, i + 1);
+        else { c.save(); c.scale(0.94, 0.94); backing(c, s, '#40315f'); c.restore(); }
+      }
+      c.restore();
+    }
+    // Rope goes on after all backings, so tiles join with no seams.
+    for (let i = 0; i < L.CELLS; i++) {
+      const v = g.board[i];
+      if (!L.isTile(v) || hidden.has(i)) continue;
+      c.save(); c.translate((i % 9) * s + s / 2, Math.floor(i / 9) * s + s / 2);
+      drawRope(c, v, s, ROPE);
+      drawEnds(c, g, i, v, s);
+      c.restore();
+    }
+  }
+
+  /* selection and animation state */
+  let sel = null, drag = null, hover = -1, keyCursor = -1;
+  const anims = [], particles = [];
+  let shake = 0, dealStart = -9999, raf = 0;
+  let newRunArmed = false, newRunTimer = 0;
+
+  function invalidate() { if (!raf) raf = requestAnimationFrame(frame); }
+
+  function selectHand(i) {
+    const g = game();
+    const shape = g.hand[i];
+    const previews = new Map();
+    for (const cell of L.legalCells(g, shape)) previews.set(cell, L.preview(g, shape, cell));
+    sel = { hand: i, shape, previews };
+    invalidate();
+  }
+  function clearSel() { sel = null; drag = null; hover = -1; keyCursor = -1; invalidate(); }
+
+  function centerOf(i) { return { x: M.bx + (i % 9) * M.cell + M.cell / 2, y: M.by + Math.floor(i / 9) * M.cell + M.cell / 2 }; }
+  function slotCenter(i) {
+    if (M.sideways) return { x: M.trayX + M.trayW / 2, y: M.trayY + (M.trayH / 3) * (i + 0.5) };
+    return { x: M.trayX + (M.trayW / 3) * (i + 0.5), y: M.trayY + M.trayH / 2 };
+  }
+
+  function replay(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+
+  let toastTimer = 0;
+  function showToast(lines) {
+    const el = $('toast');
+    el.textContent = lines.join('\n');
+    replay(el, 'show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+  }
+  function hideToast() { clearTimeout(toastTimer); $('toast').classList.remove('show'); }
+
+  // The rope tiles connected to a cell, counting the cell itself.
+  function ropeRun(board, cell) {
+    const seen = new Set([cell]), stack = [cell];
+    while (stack.length) {
+      const at = stack.pop();
+      for (const d of L.DIRS) {
+        if (!(board[at] & d.bit)) continue;
+        const n = L.neighbor(at, d);
+        if (n >= 0 && !seen.has(n) && L.isTile(board[n]) && (board[n] & d.opp)) { seen.add(n); stack.push(n); }
+      }
+    }
+    return seen.size;
+  }
+
+  // Bright flecks where a new tile's rope meets its neighbors.
+  function sparkJoins(cell, board, shape) {
+    if (reduced) return;
+    const c = centerOf(cell);
+    for (const d of L.DIRS) {
+      if (!(shape & d.bit)) continue;
+      const n = L.neighbor(cell, d);
+      if (n < 0 || !L.isTile(board[n]) || !(board[n] & d.opp)) continue;
+      for (let i = 0; i < 7; i++) {
+        const ang = Math.random() * Math.PI * 2, speed = M.cell * (0.04 + Math.random() * 0.09);
+        particles.push({
+          x: c.x + d.dc * M.cell / 2, y: c.y + d.dr * M.cell / 2, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed,
+          life: 0, max: 220 + Math.random() * 180, rot: Math.random() * 6, spin: 0.2,
+          color: i % 2 ? '#fff6cc' : '#ffd766', size: M.cell * 0.05,
+        });
+      }
+    }
+  }
+
+  function confetti() {
+    if (reduced) return;
+    const colors = ['#ffd766', '#ff8a5c', '#7fe3c4', '#fff6cc'];
+    for (let i = 0; i < 70; i++) {
+      particles.push({
+        x: M.bx + Math.random() * M.side, y: M.by - M.cell * Math.random(), vx: (Math.random() - 0.5) * M.cell * 0.08, vy: M.cell * (0.03 + Math.random() * 0.08),
+        life: 0, max: 900 + Math.random() * 700, rot: Math.random() * 6, spin: (Math.random() - 0.5) * 0.4,
+        color: colors[i % 4], size: M.cell * (0.07 + Math.random() * 0.08),
+      });
+    }
+  }
+
+  function startClearAnim(ev, before, announce) {
+    const inLoop = new Set(ev.loop);
+    const dist = new Map([[ev.cell, 0]]);
+    const queue = [ev.cell];
+    for (let q = 0; q < queue.length; q++) {
+      for (const d of L.DIRS) {
+        const n = L.neighbor(queue[q], d);
+        if (n >= 0 && inLoop.has(n) && !dist.has(n)) { dist.set(n, dist.get(queue[q]) + 1); queue.push(n); }
+      }
+    }
+    const list = ev.loop.map((i) => ({ i, v: i === ev.cell ? ev.shape : before[i], loop: true, d: dist.get(i) || 0 }))
+      .concat(ev.enclosed.map((i) => ({ i, v: before[i], loop: false, d: 0 })));
+    let sx = 0, sy = 0;
+    for (const o of list) { const p = centerOf(o.i); sx += p.x; sy += p.y; }
+    const area = list.length;
+    const dur = reduced ? 520 : 1150 + Math.min(450, area * 9);
+    const burst = reduced ? 0.4 : 0.55;
+    anims.push({
+      kind: 'clear', t0: performance.now(), dur, list, burst, fired: false,
+      cx: sx / area, cy: sy / area, area, points: ev.points, multiplier: ev.multiplier, announce,
+      maxD: Math.max(1, ...list.map((o) => o.d)),
+      label: area >= 25 ? 'Huge lasso!' : area >= 16 ? 'Big lasso!' : area >= 9 ? 'Nice lasso!' : '',
+    });
+    holdScore = performance.now() + dur * burst;
+    Sound.lasso(ev.loop.length, area, (dur * burst) / 1000, ev.multiplier);
+  }
+
+  function buzz(ms) {
+    if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(ms);
+  }
+
+  function fireBurst(a) {
+    holdScore = 0;
+    replay($('score'), 'bump');
+    if (a.announce.length) { showToast(a.announce); Sound.fanfare(); confetti(); }
+    if (reduced) return;
+    shake = Math.min(14, 3 + a.area * 0.35 + (a.multiplier - 1));
+    buzz(Math.min(60, 15 + a.area * 2));
+    const count = Math.min(130, (18 + a.area * 3) * (1 + (a.multiplier - 1) * 0.35));
+    const colors = ['#efc27a', '#ffd766', '#ff8a5c', '#fff6cc'];
+    for (let i = 0; i < count; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const speed = (0.25 + Math.random() * 0.9) * (M.cell * 0.22 + a.area * 0.08);
+      particles.push({
+        x: a.cx, y: a.cy, vx: Math.cos(ang) * speed, vy: Math.sin(ang) * speed - M.cell * 0.05,
+        life: 0, max: 420 + Math.random() * 520, rot: Math.random() * 6, spin: (Math.random() - 0.5) * 0.3,
+        color: colors[i % 4], size: M.cell * (0.05 + Math.random() * 0.11),
+      });
+    }
+  }
+
+  function tryPlace(handIndex, cell) {
+    const g = game();
+    if (!g || g.over) return false;
+    const before = g.board.slice();
+    const ev = L.place(g, handIndex, cell);
+    if (!ev) return false;
+    clearSel();
+    Sound.place();
+    buzz(8);
+    if (ev.loop.length) {
+      startClearAnim(ev, before, noteRecords(g, ev));
+    } else {
+      hidden.add(ev.cell);
+      anims.push({ kind: 'settle', t0: performance.now(), dur: reduced ? 1 : 150, cell: ev.cell, shape: ev.shape });
+      const run = ropeRun(g.board, ev.cell);
+      if (run > 1) { Sound.link(run); sparkJoins(ev.cell, g.board, ev.shape); }
+    }
+    if (ev.junkDropped >= 0) {
+      hidden.add(ev.junkDropped);
+      anims.push({ kind: 'junk', t0: performance.now() + (ev.loop.length ? 700 : 140), dur: reduced ? 1 : 300, cell: ev.junkDropped });
+    }
+    if (ev.newHand) {
+      dealStart = performance.now() + 90;
+      anims.push({ kind: 'deal', t0: dealStart, dur: 480 });
+      Sound.deal();
+    }
+    paintLayer();
+    persist();
+    updateHud();
+    if (ev.over) {
+      const beatBest = marks(app.mode).best > 0 && g.score > marks(app.mode).best;
+      setTimeout(() => { if (game() === g) { if (beatBest) Sound.fanfare(); else Sound.over(); showResult(); } }, ev.loop.length ? 1500 : 500);
+    }
+    invalidate();
+    return true;
+  }
+
+  function nope() { Sound.nope(); }
+
+  function frame(now) {
+    raf = 0;
+    let layerDirty = false;
+    for (let i = anims.length - 1; i >= 0; i--) {
+      const a = anims[i];
+      if (now - a.t0 >= a.dur) {
+        anims.splice(i, 1);
+        if (a.kind === 'settle' || a.kind === 'junk') { hidden.delete(a.cell); layerDirty = true; }
+        if (a.kind === 'junk') Sound.thud();
+      }
+    }
+    if (layerDirty) paintLayer();
+    draw(now);
+    const target = game() ? (now < holdScore ? app.shownScore : game().score) : 0;
+    if (app.shownScore !== target) stepScore(target, now);
+    else lastScoreStep = now;
+    if (anims.length || particles.length || sel || shake > 0.2 || app.shownScore !== target) invalidate();
+  }
+
+  let lastScoreStep = 0, holdScore = 0;
+  function stepScore(target, now) {
+    const dt = Math.max(0, now - lastScoreStep);
+    lastScoreStep = now;
+    const diff = target - app.shownScore;
+    const step = Math.ceil(diff * (1 - Math.exp(-dt / 110)));
+    app.shownScore = Math.abs(diff) < 3 ? target : app.shownScore + step;
+    $('score').textContent = L.formatNumber(app.shownScore);
+  }
+
+  function draw(now) {
+    const g = game();
+    if (!g) return;
+    const c = ctx;
+    c.setTransform(M.dpr, 0, 0, M.dpr, 0, 0);
+    c.clearRect(0, 0, M.w, M.h);
+    c.save();
+    if (shake > 0.2) {
+      c.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+      shake *= 0.88;
+    }
+    c.drawImage(layer, M.bx, M.by, M.side, M.side);
+
+    if (sel) drawHints(c, now);
+    for (const a of anims) if (a.kind === 'settle' || a.kind === 'junk') drawCellAnim(c, a, now);
+    for (const a of anims) if (a.kind === 'clear') drawClear(c, a, now);
+    drawParticles(c);
+    c.restore();
+    drawTray(c, now);
+    if (drag && drag.moved) drawFloating(c);
+  }
+
+  function hoverPreview() {
+    if (!sel || hover < 0) return null;
+    return sel.previews.get(hover) || null;
+  }
+
+  function drawHints(c, now) {
+    const s = M.cell;
+    const pulse = 0.5 + 0.5 * Math.sin(now / 230);
+    for (const [cell, p] of sel.previews) {
+      const { x, y } = centerOf(cell);
+      if (p.loop.length) {
+        c.save(); c.translate(x, y);
+        roundRect(c, -s * 0.42, -s * 0.42, s * 0.84, s * 0.84, s * 0.14);
+        c.lineWidth = 2.5; c.strokeStyle = 'rgba(255,215,102,' + (0.55 + pulse * 0.45) + ')'; c.stroke();
+        c.restore();
+      } else {
+        c.beginPath(); c.arc(x, y, s * 0.075, 0, 7);
+        c.fillStyle = 'rgba(127,227,196,.55)'; c.fill();
+      }
+    }
+    const p = hoverPreview();
+    if (p && p.loop.length) {
+      for (const cell of p.enclosed.concat(p.loop)) {
+        const o = centerOf(cell);
+        c.save(); c.translate(o.x, o.y);
+        roundRect(c, -s * 0.47, -s * 0.47, s * 0.94, s * 0.94, s * 0.14);
+        c.fillStyle = 'rgba(255,215,102,' + (0.2 + pulse * 0.16) + ')'; c.fill();
+        c.restore();
+      }
+    }
+    if (hover >= 0 && p) {
+      const o = centerOf(hover);
+      c.save(); c.translate(o.x, o.y); c.globalAlpha = 0.72;
+      drawRope(c, sel.shape, s, p.loop.length ? GOLD : ROPE);
+      c.restore();
+      if (p.loop.length) {
+        const text = '+' + L.formatNumber(p.points);
+        c.font = '800 ' + Math.round(s * 0.42) + 'px ' + FONT;
+        c.textAlign = 'center'; c.textBaseline = 'middle';
+        const w = c.measureText(text).width + s * 0.5;
+        const px = Math.max(M.bx + w / 2, Math.min(M.bx + M.side - w / 2, o.x));
+        const py = Math.max(M.by + s * 0.4, o.y - s * 0.85);
+        roundRect(c, px - w / 2, py - s * 0.32, w, s * 0.64, s * 0.3);
+        c.fillStyle = '#ffd766'; c.fill();
+        c.fillStyle = '#2a1a10'; c.fillText(text, px, py + 1);
+      }
+    }
+  }
+
+  function drawCellAnim(c, a, now) {
+    if (now < a.t0) return;
+    const p = clamp01((now - a.t0) / a.dur);
+    const { x, y } = centerOf(a.cell);
+    const s = M.cell;
+    c.save(); c.translate(x, y);
+    if (a.kind === 'settle') {
+      c.scale(1.14 - 0.14 * p, 1.14 - 0.14 * p);
+      c.save(); c.scale(0.94, 0.94); backing(c, s, '#40315f'); c.restore();
+      drawRope(c, a.shape, s, ROPE);
+    } else {
+      const k = Math.max(0.01, easeOutBack(p));
+      c.scale(k, k);
+      drawBurr(c, s, a.cell + 1);
+    }
+    c.restore();
+  }
+
+  function drawClear(c, a, now) {
+    const p = clamp01((now - a.t0) / a.dur);
+    if (!a.fired && p >= a.burst) { a.fired = true; fireBurst(a); }
+    const s = M.cell;
+    const cinch = clamp01((p - a.burst) / (reduced ? 0.6 : 0.32));
+    const e = cinch * cinch;
+    const fade = reduced ? 1 - cinch : 1 - clamp01((cinch - 0.55) / 0.45);
+    const fill = clamp01((p - a.burst * 0.55) / (a.burst * 0.35));
+
+    for (const o of a.list) {
+      if (o.loop) continue;
+      const pos = centerOf(o.i);
+      const x = reduced ? pos.x : pos.x + (a.cx - pos.x) * e;
+      const y = reduced ? pos.y : pos.y + (a.cy - pos.y) * e;
+      const k = reduced ? 1 : 1 - 0.85 * e;
+      c.save(); c.translate(x, y); c.scale(k, k); c.globalAlpha = fade;
+      if (o.v === L.JUNK) drawBurr(c, s, o.i + 1);
+      else if (L.isTile(o.v)) { c.save(); c.scale(0.94, 0.94); backing(c, s, '#40315f'); c.restore(); drawRope(c, o.v, s, ROPE); }
+      c.scale(0.94, 0.94);
+      backing(c, s, 'rgba(255,215,102,' + (0.55 * fill) + ')');
+      c.restore();
+    }
+    const sweep = clamp01(p / a.burst) * 1.25;
+    for (const o of a.list) {
+      if (!o.loop) continue;
+      const pos = centerOf(o.i);
+      const x = reduced ? pos.x : pos.x + (a.cx - pos.x) * e;
+      const y = reduced ? pos.y : pos.y + (a.cy - pos.y) * e;
+      const k = reduced ? 1 : 1 - 0.85 * e;
+      const lit = clamp01((sweep - o.d / (a.maxD + 1)) * 4);
+      c.save(); c.translate(x, y); c.scale(k, k); c.globalAlpha = fade;
+      c.save(); c.scale(0.94, 0.94); backing(c, s, 'rgba(90,60,40,' + (0.55 * (1 - cinch)) + ')'); c.restore();
+      drawRope(c, o.v, s * (1 + 0.08 * lit * (1 - cinch)), mixPalette(ROPE, GOLD, lit));
+      c.restore();
+    }
+    if (p >= a.burst) {
+      const q = clamp01((p - a.burst) / (1 - a.burst));
+      if (!reduced) {
+        c.save();
+        c.beginPath();
+        c.arc(a.cx, a.cy, s * 0.6 + M.side * 0.55 * Math.sqrt(q), 0, 7);
+        c.lineWidth = s * 0.16 * (1 - q);
+        c.strokeStyle = 'rgba(255,215,102,' + (0.75 * (1 - q)) + ')';
+        c.stroke();
+        c.restore();
+      }
+      const pop = reduced ? 1 : easeOutBack(clamp01(q * 3));
+      c.save();
+      c.translate(Math.max(M.bx + s * 1.8, Math.min(M.bx + M.side - s * 1.8, a.cx)), a.cy - (reduced ? 0 : s * 0.9 * q));
+      c.scale(pop, pop);
+      c.globalAlpha = 1 - clamp01((q - 0.72) / 0.28);
+      c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.font = '800 ' + Math.round(s * Math.min(1.25, 0.62 + a.area / 40)) + 'px ' + FONT;
+      c.lineWidth = s * 0.14; c.strokeStyle = '#2a1a10'; c.lineJoin = 'round';
+      c.strokeText('+' + L.formatNumber(a.points), 0, 0);
+      c.fillStyle = '#ffd766';
+      c.fillText('+' + L.formatNumber(a.points), 0, 0);
+      if (a.label) {
+        c.font = '800 ' + Math.round(s * 0.42) + 'px ' + FONT;
+        c.lineWidth = s * 0.1;
+        c.strokeText(a.label, 0, -s * 0.85);
+        c.fillStyle = '#fff6cc';
+        c.fillText(a.label, 0, -s * 0.85);
+      }
+      if (a.multiplier >= 2) {
+        const text = 'Chain \u00d7' + a.multiplier + '!';
+        c.font = '800 ' + Math.round(s * 0.46) + 'px ' + FONT;
+        c.lineWidth = s * 0.1;
+        c.strokeText(text, 0, s * 0.8);
+        c.fillStyle = '#ff8a5c';
+        c.fillText(text, 0, s * 0.8);
+      }
+      c.restore();
+    }
+  }
+
+  let lastParticle = 0;
+  function drawParticles(c) {
+    const now = performance.now();
+    const dt = Math.min(40, now - (lastParticle || now));
+    lastParticle = now;
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.life += dt;
+      if (p.life >= p.max) { particles.splice(i, 1); continue; }
+      p.x += p.vx * dt * 0.06; p.y += p.vy * dt * 0.06; p.vy += dt * 0.012; p.rot += p.spin;
+      c.save(); c.translate(p.x, p.y); c.rotate(p.rot);
+      c.globalAlpha = 1 - p.life / p.max;
+      c.fillStyle = p.color;
+      c.fillRect(-p.size, -p.size * 0.28, p.size * 2, p.size * 0.56);
+      c.restore();
+    }
+  }
+
+  function drawTray(c, now) {
+    const g = game();
+    const size = M.sideways ? Math.min(M.trayW * 0.8, (M.trayH / 3) * 0.86, M.cell * 2) : Math.min(M.trayH * 0.8, M.cell * 2);
+    for (let i = 0; i < 3; i++) {
+      const { x, y } = slotCenter(i);
+      const shape = g.hand[i];
+      c.save(); c.translate(x, y);
+      if (!shape) {
+        roundRect(c, -size * 0.44, -size * 0.44, size * 0.88, size * 0.88, size * 0.18);
+        c.setLineDash([size * 0.09, size * 0.1]);
+        c.lineWidth = 2; c.strokeStyle = 'rgba(183,168,207,.28)'; c.stroke();
+        c.restore();
+        continue;
+      }
+      const isSel = sel && sel.hand === i;
+      const lifted = isSel && drag && drag.moved;
+      const fits = L.legalCells(g, shape).length > 0;
+      const k = reduced ? 1 : Math.max(0.01, easeOutBack(clamp01((now - dealStart - i * 70) / 230)));
+      c.scale(k, k);
+      if (isSel && !lifted) { c.translate(0, -size * 0.06); }
+      c.globalAlpha = lifted ? 0.28 : fits ? 1 : 0.42;
+      backing(c, size, isSel && !lifted ? '#54407e' : '#40315f');
+      if (isSel && !lifted) {
+        roundRect(c, -size / 2 + 1, -size / 2 + 1, size - 2, size - 2, size * 0.16);
+        c.lineWidth = 2.5; c.strokeStyle = '#ffd766'; c.stroke();
+      }
+      c.save(); c.scale(0.8, 0.8); drawRope(c, shape, size, ROPE); c.restore();
+      c.restore();
+    }
+  }
+
+  function dragPoint() {
+    return { x: drag.x, y: drag.y - (drag.touch ? M.cell * 1.35 : 0) };
+  }
+
+  function drawFloating(c) {
+    if (!sel) return;
+    const p = dragPoint();
+    const prev = hoverPreview();
+    const bad = hover >= 0 && !prev;
+    c.save(); c.translate(p.x, p.y);
+    c.scale(1.05, 1.05);
+    c.globalAlpha = 0.92;
+    backing(c, M.cell, '#54407e');
+    drawRope(c, sel.shape, M.cell, bad ? RED : prev && prev.loop.length ? GOLD : ROPE);
+    c.restore();
+  }
+
+  /* ----- input ----- */
+  function pointerPos(e) {
+    const r = cv.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+  function cellAt(x, y) {
+    const c = Math.floor((x - M.bx) / M.cell), r = Math.floor((y - M.by) / M.cell);
+    if (c < 0 || c > 8 || r < 0 || r > 8) return -1;
+    return r * 9 + c;
+  }
+  function slotAt(x, y) {
+    if (y < M.trayY - 10 || y > M.trayY + M.trayH + 10 || x < M.trayX - 10 || x > M.trayX + M.trayW + 10) return -1;
+    const i = M.sideways ? Math.floor((y - M.trayY) / (M.trayH / 3)) : Math.floor((x - M.trayX) / (M.trayW / 3));
+    return Math.max(0, Math.min(2, i));
+  }
+
+  cv.addEventListener('pointerdown', (e) => {
+    Sound.unlock();
+    const g = game();
+    if (!g || g.over) return;
+    const p = pointerPos(e);
+    const slot = slotAt(p.x, p.y);
+    if (slot >= 0 && g.hand[slot]) {
+      const wasSelected = !!(sel && sel.hand === slot);
+      selectHand(slot);
+      hover = -1;
+      drag = { x: p.x, y: p.y, sx: p.x, sy: p.y, moved: false, touch: e.pointerType !== 'mouse', wasSelected };
+      try { cv.setPointerCapture(e.pointerId); } catch (err) { /* pointer already gone */ }
+      return;
+    }
+    if (sel) {
+      const cell = cellAt(p.x, p.y);
+      if (cell >= 0 && sel.previews.has(cell)) tryPlace(sel.hand, cell);
+      else if (cell >= 0) nope();
+      else clearSel();
+    }
+  });
+
+  cv.addEventListener('pointermove', (e) => {
+    const p = pointerPos(e);
+    if (drag) {
+      drag.x = p.x; drag.y = p.y;
+      if (!drag.moved && Math.hypot(p.x - drag.sx, p.y - drag.sy) > 6) drag.moved = true;
+      if (drag.moved) { const f = dragPoint(); hover = cellAt(f.x, f.y); }
+      invalidate();
+    } else if (sel && e.pointerType === 'mouse') {
+      const cell = cellAt(p.x, p.y);
+      if (cell !== hover) { hover = cell; invalidate(); }
+    }
+  });
+
+  function endDrag() {
+    if (!drag) return;
+    const d = drag;
+    drag = null;
+    if (d.moved) {
+      if (sel && hover >= 0 && sel.previews.has(hover)) tryPlace(sel.hand, hover);
+      else { if (hover >= 0) nope(); clearSel(); }
+    } else if (d.wasSelected) clearSel();
+    invalidate();
+  }
+  cv.addEventListener('pointerup', endDrag);
+  cv.addEventListener('pointercancel', () => { drag = null; clearSel(); });
+  cv.addEventListener('pointerleave', () => { if (!drag && hover !== -1) { hover = -1; invalidate(); } });
+
+  document.addEventListener('keydown', (e) => {
+    if (!$('overlay').hidden) { if (e.key === 'Escape') closeCard(); return; }
+    const g = game();
+    if (!g || g.over) return;
+    if (e.key === '1' || e.key === '2' || e.key === '3') {
+      const i = Number(e.key) - 1;
+      if (g.hand[i]) { Sound.unlock(); selectHand(i); hover = keyCursor = keyCursor >= 0 ? keyCursor : 40; invalidate(); }
+      return;
+    }
+    if (!sel) return;
+    const step = { ArrowUp: -9, ArrowDown: 9, ArrowLeft: -1, ArrowRight: 1 }[e.key];
+    if (step) {
+      e.preventDefault();
+      const c = keyCursor < 0 ? 40 : keyCursor;
+      const sameRow = Math.floor((c + step) / 9) === Math.floor(c / 9);
+      if (c + step >= 0 && c + step < 81 && (Math.abs(step) === 9 || sameRow)) keyCursor = c + step;
+      else keyCursor = c;
+      hover = keyCursor;
+      invalidate();
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (hover >= 0 && sel.previews.has(hover)) tryPlace(sel.hand, hover); else nope();
+    } else if (e.key === 'Escape') clearSel();
+  });
+
+  /* ----- screens ----- */
+  const SOUND_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/></svg>';
+  const SOUND_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M17 9.5l5 5M22 9.5l-5 5"/></svg>';
+
+  function updateSoundButton() {
+    $('btn-sound').innerHTML = app.muted ? SOUND_OFF : SOUND_ON;
+    $('btn-sound').setAttribute('aria-label', app.muted ? 'Turn sound on' : 'Mute sound');
+  }
+
+  function prettyDate(dateText) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const parts = dateText.split('-').map(Number);
+    return months[parts[1] - 1] + ' ' + parts[2];
+  }
+
+  function updateHud() {
+    const g = game();
+    const count = g.loops.length;
+    const big = L.biggestArea(g);
+    $('hud-a').innerHTML = app.mode === 'daily'
+      ? 'Board for <b>' + prettyDate(app.dailyDate) + '</b>'
+      : 'Best <b>' + L.formatNumber(Math.max(app.best, g.score)) + '</b>';
+    $('hud-b').innerHTML = '<b>' + count + '</b> ' + (count === 1 ? 'loop' : 'loops') + (big ? ', biggest <b>' + big + '</b>' : '');
+    const multiplier = g.over ? 1 : L.chainMultiplier(g);
+    const chip = $('chain');
+    chip.hidden = multiplier < 2;
+    chip.textContent = 'Chain \u00d7' + multiplier;
+    if (multiplier > app.shownChain) replay(chip, 'pop');
+    app.shownChain = multiplier;
+    $('btn-new').hidden = app.mode !== 'free';
+    $('btn-new').textContent = 'New run';
+    newRunArmed = false;
+    $('tab-daily').setAttribute('aria-selected', String(app.mode === 'daily'));
+    $('tab-free').setAttribute('aria-selected', String(app.mode === 'free'));
+  }
+
+  function setScoreInstant() {
+    app.shownScore = game().score;
+    $('score').textContent = L.formatNumber(app.shownScore);
+  }
+
+  function refreshView() {
+    clearSel();
+    hideToast();
+    holdScore = 0;
+    app.shownChain = 1;
+    anims.length = 0; particles.length = 0; hidden.clear();
+    dealStart = performance.now();
+    anims.push({ kind: 'deal', t0: dealStart, dur: 480 });
+    paintLayer();
+    setScoreInstant();
+    updateHud();
+    invalidate();
+  }
+
+  function setMode(mode) {
+    closeCard();
+    app.mode = mode;
+    save('mode', mode);
+    if (mode === 'daily') ensureDaily();
+    refreshView();
+    if (game().over) showResult();
+  }
+
+  function showCard(html) {
+    $('card').innerHTML = html;
+    $('overlay').hidden = false;
+    const primary = $('card').querySelector('[data-primary]');
+    if (primary) primary.focus({ preventScroll: true });
+  }
+  function closeCard() { $('overlay').hidden = true; }
+
+  function showHelp() {
+    showCard(
+      '<h2>How to play</h2>' +
+      '<svg class="help-art" viewBox="0 0 120 120" aria-hidden="true"><rect x="22" y="22" width="76" height="76" rx="20" fill="rgba(255,215,102,.18)" stroke="#efc27a" stroke-width="10"/><path d="M60 42l4 11 11-4-5 10 11 5-11 5 5 10-11-4-4 11-4-11-11 4 5-10-11-5 11-5-5-10 11 4z" fill="#7d6aa3" stroke="#231a3c" stroke-width="2"/></svg>' +
+      '<ol>' +
+      '<li>Drag a rope piece onto the board, or tap a piece and then a square. Pieces don\'t turn.</li>' +
+      '<li>Rope ends must meet rope ends. Bright dots show the ends still free.</li>' +
+      '<li>Close a rope into a loop and it vanishes with everything inside, burrs too.</li>' +
+      '<li>Bigger loops score far more, so stretching pays, if you can close it.</li>' +
+      '<li>Close a loop in back-to-back hands to build a chain. It multiplies your points, up to \u00d75.</li>' +
+      '<li>The run ends when none of your pieces fit.</li>' +
+      '</ol>' +
+      '<div class="row"><button class="btn" data-act="close">Got it</button></div>'
+    );
+    save('seenHelp', true);
+  }
+
+  // How this run compares with the best from before it started. Real numbers only.
+  function bestLine(g) {
+    const m = marks(app.mode);
+    const label = app.mode === 'free' ? 'your best' : 'your best daily';
+    if (m.best <= 0 || g.score <= 0) return '';
+    if (g.score > m.best) return '<p class="note">New best! ' + L.formatNumber(g.score - m.best) + ' more than ' + label + ' before.</p>';
+    if (g.score === m.best) return '<p class="note">You matched ' + label + '!</p>';
+    const pct = Math.max(2, Math.floor((g.score / m.best) * 100));
+    return '<div class="gap-bar"><i style="width:' + pct + '%"></i></div>' +
+      '<p class="sub">' + L.formatNumber(m.best - g.score) + ' short of ' + label + ', ' + L.formatNumber(m.best) + '</p>';
+  }
+
+  function badges(g) {
+    const m = marks(app.mode), items = [];
+    const big = L.biggestArea(g), chain = L.longestChain(g);
+    if (m.biggest > 0 && big > m.biggest) items.push('Biggest loop yet: ' + big);
+    if (chain >= 2 && chain > m.chain) items.push('Longest chain yet: ' + chain);
+    return items.length ? '<ul class="badges">' + items.map((t) => '<li>' + t + '</li>').join('') + '</ul>' : '';
+  }
+
+  function showResult() {
+    const g = game();
+    const big = L.biggestArea(g);
+    const count = g.loops.length;
+    const chain = L.longestChain(g);
+    const stats = '<div class="big-score">' + L.formatNumber(g.score) + '</div>' +
+      '<p class="sub">' + count + (count === 1 ? ' loop' : ' loops') + ', biggest ' + big + (chain >= 2 ? ', chain ' + chain : '') + ', ' + g.placed + ' pieces placed</p>' +
+      bestLine(g) + badges(g);
+    if (app.mode === 'daily') {
+      const text = L.shareText(g, app.dailyDate);
+      const canShare = !!navigator.share;
+      showCard(
+        '<h2>Out of rope</h2>' + stats +
+        '<div class="share" id="share-text"></div>' +
+        '<p class="sub">A new board arrives tomorrow.</p>' +
+        '<div class="row">' +
+        '<button class="btn" data-act="copy">Copy result</button>' +
+        (canShare ? '<button class="btn alt" data-act="share">Share</button>' : '') +
+        '</div><div class="row">' +
+        '<button class="btn alt" data-act="free">Free play</button>' +
+        '<button class="btn alt" data-act="close">See board</button>' +
+        '</div>'
+      );
+      $('share-text').textContent = text;
+    } else {
+      showCard(
+        '<h2>Out of rope</h2>' + stats +
+        '<div class="row"><button class="btn" data-act="new" data-primary>Play again</button><button class="btn alt" data-act="close">See board</button></div>'
+      );
+    }
+  }
+
+  async function copyText(text) {
+    try {
+      if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); return true; }
+    } catch (e) { /* fall through */ }
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    ta.remove();
+    return ok;
+  }
+
+  function startFreeRun() {
+    app.games.free = L.newGame(freshSeed());
+    startMarks('free');
+    persist();
+    closeCard();
+    refreshView();
+  }
+
+  $('overlay').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    const act = btn.dataset.act;
+    if (act === 'close') closeCard();
+    else if (act === 'new') startFreeRun();
+    else if (act === 'free') setMode('free');
+    else if (act === 'copy') {
+      const ok = await copyText(L.shareText(app.games.daily, app.dailyDate));
+      btn.textContent = ok ? 'Copied!' : 'Select the text above';
+    } else if (act === 'share') {
+      try { await navigator.share({ text: L.shareText(app.games.daily, app.dailyDate) }); } catch (err) { /* cancelled */ }
+    }
+  });
+
+  $('tab-daily').addEventListener('click', () => { Sound.unlock(); setMode('daily'); });
+  $('tab-free').addEventListener('click', () => { Sound.unlock(); setMode('free'); });
+  $('btn-help').addEventListener('click', () => { Sound.unlock(); showHelp(); });
+  $('btn-sound').addEventListener('click', () => {
+    app.muted = !app.muted;
+    save('muted', app.muted);
+    Sound.unlock();
+    Sound.setMuted(app.muted);
+    updateSoundButton();
+  });
+
+  $('btn-new').addEventListener('click', () => {
+    Sound.unlock();
+    const g = app.games.free;
+    if (g.over || g.placed === 0 || newRunArmed) { clearTimeout(newRunTimer); startFreeRun(); return; }
+    newRunArmed = true;
+    $('btn-new').textContent = 'Tap again to restart';
+    newRunTimer = setTimeout(() => { newRunArmed = false; $('btn-new').textContent = 'New run'; }, 2800);
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden || app.mode !== 'daily') return;
+    if (ensureDaily()) { closeCard(); refreshView(); }
+  });
+
+  /* ----- start ----- */
+  restoreGames();
+  ensureDaily();
+  updateSoundButton();
+  if ('ResizeObserver' in window) new ResizeObserver(resize).observe(stage);
+  window.addEventListener('resize', resize);
+  resize();
+  refreshView();
+  if (!load('seenHelp', false)) showHelp();
+  else if (game().over) showResult();
+
+  // Installable when hosted. A plain file has no service worker, and the game doesn't need one.
+  if (location.protocol === 'http:' || location.protocol === 'https:') {
+    const link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href = 'manifest.webmanifest';
+    document.head.appendChild(link);
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+    }
+  }
+})();
+</script>
+</body>
+</html>
