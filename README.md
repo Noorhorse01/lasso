@@ -8,8 +8,6 @@ A small puzzle game you can keep. It's free, with no ads, no account, no purchas
 
 **On a computer:** click the green **Code** button on this page, choose **Download ZIP**, unzip it and double-click `index.html`. That one file is the whole game, so you can also download just it and move it wherever you like.
 
-**On a phone:** if someone has hosted the game (see below), open its page in your browser. On an iPhone, tap Share, then Add to Home Screen. It then opens like an app and works with no connection.
-
 ## How it works
 
 - Drag a rope piece from the tray onto the 9x9 board, or tap a piece and then a square. Pieces don't turn.
@@ -25,23 +23,6 @@ Your best score, biggest loop and longest chain are saved on your device, and th
 
 Keyboard: `1` `2` `3` pick a piece, arrow keys move, `Enter` places, `Esc` cancels.
 
-## For developers
-
-Everything is in `index.html`, with no build step. The game logic sits in its own marked block with no access to the page, and [docs/rules.md](docs/rules.md) is the exact spec for porting it.
-
-These need [Node](https://nodejs.org) 22.2 or newer:
-
-```bash
-node tools/engine.test.mjs
-```
-
-```bash
-node tools/sim.mjs 300
-```
-
-`tools/make-icons.mjs` redraws the app icons.
-
-To host it on GitHub Pages, publish the repository root. `manifest.webmanifest` and `sw.js` make it installable and offline-capable there. A copy opened as a plain file doesn't use them.
 
 ## License
 
